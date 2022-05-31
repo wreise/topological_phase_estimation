@@ -1,5 +1,5 @@
 # Topological Phase Estimation
-This repository contains an implementation of the algorithms presented in Topological Phase Estimation.
+This repository contains an implementation of the algorithms presented in [Topological Phase Estimation](https://arxiv.org/abs/2205.14390).
 It also features the code to generate the data for the experiments.
 
 ## Installation
