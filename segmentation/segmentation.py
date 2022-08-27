@@ -41,8 +41,36 @@ def segment_signal(s, tau):
     return _segment_signal(s, tau, estimate_N)
 
 
-def segment_signal_with_clustering(s, tau):
+def segment_signal_with_clustering_filtering_diagonal(s, tau):
     return _segment_signal(s, tau, estimate_N_with_clustering)
+
+
+def segment_signal_with_clustering(s, tau):
+    stree = signal_to_simplex_tree(s, periodic=True)
+    dgm = signal_to_diagram(simplex_tree=stree)
+
+    # Get birth simplices, more persistent than 2*tau
+    persistence_pairs = [(a, b) for a, b in stree.persistence_pairs() if len(b) > 0]
+    argmin, argmax = np.argmin(s), np.argmax(s)
+    max_pair = [argmax, argmax+1] if argmax < s.shape[0]-1 else [argmax-1, argmax]
+    persistence_pairs.append(([argmin], max_pair))
+    values_for_pairs = np.array([[stree.filtration(a), stree.filtration(b)]
+                                 for a, b in persistence_pairs])
+    N_hat, clusterer = estimate_N_with_clustering(dgm, tau, filter_diagonal=False,
+                                                  return_clusterer=True)
+    labels = clusterer.fit_predict(values_for_pairs)
+
+    not_persistent_points = values_for_pairs[:, 1] - values_for_pairs[:, 0] <= tau
+    not_persistent_labels = np.unique(labels[not_persistent_points])
+    unique_labels = [l for l in np.unique(labels) if not (l in not_persistent_labels)]
+
+    birth_coordinate = np.array(list(map(lambda x: x[0][0], persistence_pairs)))
+    sequences = []
+    for label in unique_labels:
+        sequences.append(np.sort(birth_coordinate[np.where(labels==label)[0]]))
+    # Verify the length of each sequence
+    assert all([len(seq) == N_hat for seq in sequences])
+    return np.stack(sequences, axis=0)
 
 
 def segment_with_boosting(s):

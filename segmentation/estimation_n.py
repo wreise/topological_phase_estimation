@@ -192,7 +192,16 @@ def estimate_N_with_clustering(diagram, tau, filter_diagonal=True,
                                         affinity="chebyshev",
                                         compute_full_tree=True)
     labels = clusterer.fit_predict(diagram_)
-    _, counts = np.unique(labels, return_counts=True)
+    if not(filter_diagonal):
+        not_persistent_points = diagram_[:, 1] - diagram_[:, 0] <= tau
+        not_persistent_labels = np.unique(labels[not_persistent_points])
+    else:
+        not_persistent_labels = np.empty((0,))
+    clusterer.not_persistent_labels = not_persistent_labels
+    unique_labels, counts = np.unique(labels, return_counts=True)
+    counts_of_unique = np.array([
+        count for label, count in zip(unique_labels, counts) if not (label in not_persistent_labels)
+    ], dtype=int)
     gcd = get_gcd(counts)
     if return_clusterer:
         return gcd, clusterer
